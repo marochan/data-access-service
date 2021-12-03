@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: das-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: das-pod
+    template:
+        metadata:
+            labels:
+                app: das-pod
+        spec:
+            containers:
+              - name: dasc
+                image: marochan442/filmlebendczil-da:latest
+                imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: das-service
+spec:
+    type: LoadBalancer
+    ports:
+    - port: 8888
+      targetPort: 8080
+    selector:
+       app: das-pod
+   
+       
