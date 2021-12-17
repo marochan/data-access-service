@@ -11,7 +11,7 @@ import javax.persistence.Table;
 @Table(name = "MEMBER")
 public class Member {
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	private Long ID;
 	@Column(name = "token")
 	private String token;
@@ -30,7 +30,7 @@ public class Member {
 	}
 	
 	
-	public long getID() {
+	public Long getID() {
 		return ID;
 	}
 
