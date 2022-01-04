@@ -31,6 +31,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.filmlebendczil.dataaccessservice.entity.Member;
 import com.filmlebendczil.dataaccessservice.entity.Movie;
 import com.filmlebendczil.dataaccessservice.entity.MovieRating;
@@ -162,15 +166,21 @@ public class DataAccessController {
 
 	@GetMapping("/check-recommendation")
 	public ResponseEntity<Object> checkRecommendations(
-			@RequestBody List<Double> multipliers, @RequestBody Long id, @RequestBody int amountOfMovies ) {
-	
+			@RequestParam(name = "id") Long id, 
+			@RequestParam(name = "amountOfMovies") int amountOfMovies,
+			@RequestParam(name = "multipliers")  String multipliers) 
+			throws JsonMappingException, JsonParseException, JsonProcessingException {
 		
+		
+		ObjectMapper mapper = new ObjectMapper();
+		Map <String,  Double> multipliersMap = mapper.readValue(multipliers, Map.class);
+		System.out.println(multipliersMap.toString());
 		Optional<Member> yikes = memberRepo.findById(id);
 		Member member = yikes.get();
 		List<Movie> availableMovies = movieRepo.findAll();
 		HashMap<Long, Double> map = new HashMap<Long, Double>();
 		for(Movie m : availableMovies) {
-			double d = calculateDifference(m, member, multipliers);
+			double d = calculateDifference(m, member, multipliersMap);
 			map.put(m.getID(), d);
 		}
 		HashMap<Long, Double> resulting = 
@@ -187,15 +197,15 @@ public class DataAccessController {
 	
 	
 	//obliczanie wskaznika
-	public double calculateDifference(Movie movie, Member member, List<Double> multipliers) {
+	public double calculateDifference(Movie movie, Member member, Map<String, Double> multipliers) {
 		double d = 0.0;
 		
-		d = 	Math.abs(movie.getCat1() - member.getCat1()) * multipliers.get(0) +
-				Math.abs(movie.getCat2() - member.getCat2()) * multipliers.get(1) +
-				Math.abs(movie.getCat3() - member.getCat3()) * multipliers.get(2) +
-				Math.abs(movie.getCat4() - member.getCat4()) * multipliers.get(3) +
-				Math.abs(movie.getCat5() - member.getCat5()) * multipliers.get(4) +
-				Math.abs(movie.getCat6() - member.getCat6()) * multipliers.get(5);
+		d = 	Math.abs(movie.getCat1() - member.getCat1()) * multipliers.get("m1") +
+				Math.abs(movie.getCat2() - member.getCat2()) * multipliers.get("m2") +
+				Math.abs(movie.getCat3() - member.getCat3()) * multipliers.get("m3") +
+				Math.abs(movie.getCat4() - member.getCat4()) * multipliers.get("m4") +
+				Math.abs(movie.getCat5() - member.getCat5()) * multipliers.get("m5") +
+				Math.abs(movie.getCat6() - member.getCat6()) * multipliers.get("m6");
 		return d;
 	}
 }
