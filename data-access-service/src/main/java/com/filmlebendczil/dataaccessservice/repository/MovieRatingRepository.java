@@ -10,7 +10,9 @@ import com.filmlebendczil.dataaccessservice.entity.MovieRating;
 @Repository
 public interface MovieRatingRepository extends JpaRepository<MovieRating, Long> {
 	
-	MovieRating findByMovieName(String movieName);
+	MovieRating findByMovieId(long movieId);
+	List<MovieRating> findAllByMovieId(Long movieId);
+	List<MovieRating> findAllByMemberId(Long memberId);
 }
 
 

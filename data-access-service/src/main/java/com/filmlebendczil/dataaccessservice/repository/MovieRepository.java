@@ -10,4 +10,5 @@ import com.filmlebendczil.dataaccessservice.entity.Movie;
 public interface MovieRepository extends JpaRepository<Movie, Long>{
 	Movie findByName(String name);
 	List<Movie> findByNameContaining(String name);
+	Movie findById(long Id);
 }
