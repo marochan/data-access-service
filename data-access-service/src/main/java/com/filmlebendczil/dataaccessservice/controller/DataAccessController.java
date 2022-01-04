@@ -183,13 +183,18 @@ public class DataAccessController {
 			double d = calculateDifference(m, member, multipliersMap);
 			map.put(m.getID(), d);
 		}
-		HashMap<Long, Double> resulting = 
+		HashMap<Long, Double> sorted = 
 				map.entrySet()					
 				.stream()							
 				.sorted(Entry.comparingByValue())
+				.limit(amountOfMovies)
 				.collect(Collectors.toMap(Entry::getKey, Entry::getValue,
 		(e1, e2) -> e1, LinkedHashMap<Long, Double>::new));
-		
+	
+		List<Movie> resulting = new ArrayList<Movie>();
+		for(Map.Entry<Long, Double> entry : sorted.entrySet()) {
+			resulting.add(movieRepo.findById(entry.getKey()).get());
+		}
 		
 		return ResponseEntity.ok(resulting);
 	}
