@@ -9,18 +9,8 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import javax.persistence.Entity;
-import javax.persistence.EntityManager;
-import javax.ws.rs.PathParam;
-
-import org.hibernate.HibernateException;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
-import org.hibernate.cfg.Configuration;
-
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +21,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.filmlebendczil.dataaccessservice.entity.Member;
 import com.filmlebendczil.dataaccessservice.entity.Movie;
 import com.filmlebendczil.dataaccessservice.entity.MovieRating;
@@ -50,18 +44,19 @@ public class DataAccessController {
 
 	@GetMapping("/search")
 	public ResponseEntity<Object> search(@RequestParam(name = "searchPhrase") String phrase) {
-		// String map =" [ { \"title\": \"Test\", \"description\": \"Test movie\",
-		// \"director\": \"Nobody\", \"year\": 2020 }, { \"title\": \"Another test\",
-		// \"description\": \"Another test movie. Electric boogaloo!\", \"director\":
-		// \"Somebody\", \"year\": 2021 } ]";
+
 		List<Movie> resultList = movieRepo.findByNameContaining(phrase);
 		return ResponseEntity.ok(resultList);
 	}
 
 	@PostMapping("/add-movie")
-	public void addMovie(@RequestBody Movie newMovie) {
+	public ResponseEntity<Object> addMovie(@RequestBody Movie newMovie) {
+		if (movieRepo.findByName(newMovie.getName()) != null) {
 
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Movie already exists in the database");
+		}
 		movieRepo.save(newMovie);
+		return ResponseEntity.ok(newMovie);
 	}
 
 	@GetMapping("/get-rating")
@@ -70,23 +65,23 @@ public class DataAccessController {
 		return ResponseEntity.ok(rating);
 	}
 
-	@GetMapping("/get-user/{token}")
-	public ResponseEntity<Member> getCertainUser(@PathVariable("token") String token) {
+	@GetMapping("/get-user/{userId}")
+	public ResponseEntity<Member> getCertainUser(@PathVariable("userId") String userId) {
 
-		Member member = memberRepo.findByToken(token);
-		if(member == null) {
+		Member member = memberRepo.findByUserId(userId);
+		if (member == null) {
 			return (ResponseEntity<Member>) ResponseEntity.notFound();
 		}
 		return ResponseEntity.ok(member);
 	}
-	//aktualizacja ratingu danego filmu i dodanie ratingu do bazy 
+
+	// aktualizacja ratingu danego filmu i dodanie ratingu do bazy
 	@PutMapping("/update-rating")
 	public void updateRating(@RequestBody MovieRating rating) {
 
 		Long id = rating.getMovieId();
 		Long userId = rating.getMemberId();
-		
-		
+
 		movieRatingRepo.save(rating);
 
 		Optional<Movie> movie = movieRepo.findById(id);
@@ -116,6 +111,7 @@ public class DataAccessController {
 		movieRepo.save(toUpdate);
 		updateUserProfile(userId);
 	}
+
 	// aktualizacja profilu uzytkownika
 	public void updateUserProfile(Long userId) {
 		List<MovieRating> ratingByUser = movieRatingRepo.findAllByMemberId(userId);
@@ -128,10 +124,10 @@ public class DataAccessController {
 		double sum4 = 0.0;
 		double sum5 = 0.0;
 		double sum6 = 0.0;
-		for(MovieRating mr : ratingByUser) {
+		for (MovieRating mr : ratingByUser) {
 			double score = mr.getScore();
-			
-			if(score> 0.5) {
+
+			if (score > 0.5) {
 				weightSum += score;
 				sum1 += mr.getCat1() * score;
 				sum2 += mr.getCat2() * score;
@@ -141,63 +137,67 @@ public class DataAccessController {
 				sum6 += mr.getCat6() * score;
 
 			}
-			
+
 		}
-		updatable.setCat1(sum1/weightSum);
-		updatable.setCat2(sum2/weightSum);
-		updatable.setCat3(sum3/weightSum);
-		updatable.setCat4(sum4/weightSum);
-		updatable.setCat5(sum5/weightSum);
-		updatable.setCat6(sum6/weightSum);
+		updatable.setCat1(sum1 / weightSum);
+		updatable.setCat2(sum2 / weightSum);
+		updatable.setCat3(sum3 / weightSum);
+		updatable.setCat4(sum4 / weightSum);
+		updatable.setCat5(sum5 / weightSum);
+		updatable.setCat6(sum6 / weightSum);
 		memberRepo.save(updatable);
 	}
 
 	@PostMapping("/create-account")
 	public ResponseEntity<Object> addUserToDatabase(@RequestBody Member newMember) {
 
+		if (memberRepo.findByUserId(newMember.getUserId()) != null) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("User already exists in the database");
+		}
 		memberRepo.save(newMember);
 		return ResponseEntity.ok(newMember);
 
 	}
 
 	@GetMapping("/check-recommendation")
-	public ResponseEntity<Object> checkRecommendations(
-			@RequestBody List<Double> multipliers, @RequestBody Long id, @RequestBody int amountOfMovies ) {
-	
-		
+	public ResponseEntity<Object> checkRecommendations(@RequestParam(name = "id") Long id,
+			@RequestParam(name = "amountOfMovies") int amountOfMovies,
+			@RequestParam(name = "multipliers") String multipliers)
+			throws JsonMappingException, JsonParseException, JsonProcessingException {
+
+		ObjectMapper mapper = new ObjectMapper();
+		Map<String, Double> multipliersMap = mapper.readValue(multipliers, Map.class);
+		System.out.println(multipliersMap.toString());
 		Optional<Member> yikes = memberRepo.findById(id);
 		Member member = yikes.get();
 		List<Movie> availableMovies = movieRepo.findAll();
 		HashMap<Long, Double> map = new HashMap<Long, Double>();
-		for(Movie m : availableMovies) {
-			double d = calculateDifference(m, member, multipliers);
+		for (Movie m : availableMovies) {
+			double d = calculateDifference(m, member, multipliersMap);
 			map.put(m.getID(), d);
 		}
-		HashMap<Long, Double> resulting = 
-				map.entrySet()					
-				.stream()							
-				.sorted(Entry.comparingByValue())
-				.collect(Collectors.toMap(Entry::getKey, Entry::getValue,
-		(e1, e2) -> e1, LinkedHashMap<Long, Double>::new));
-		
-		
+		HashMap<Long, Double> sorted = map.entrySet().stream().sorted(Entry.comparingByValue()).limit(amountOfMovies)
+				.collect(Collectors.toMap(Entry::getKey, Entry::getValue, (e1, e2) -> e1,
+						LinkedHashMap<Long, Double>::new));
+
+		List<Movie> resulting = new ArrayList<Movie>();
+		for (Map.Entry<Long, Double> entry : sorted.entrySet()) {
+			resulting.add(movieRepo.findById(entry.getKey()).get());
+		}
+
 		return ResponseEntity.ok(resulting);
 	}
-	
-	
-	
-	//obliczanie wskaznika
-	public double calculateDifference(Movie movie, Member member, List<Double> multipliers) {
+
+	// obliczanie wskaznika
+	public double calculateDifference(Movie movie, Member member, Map<String, Double> multipliers) {
 		double d = 0.0;
-		
-		d = 	Math.abs(movie.getCat1() - member.getCat1()) * multipliers.get(0) +
-				Math.abs(movie.getCat2() - member.getCat2()) * multipliers.get(1) +
-				Math.abs(movie.getCat3() - member.getCat3()) * multipliers.get(2) +
-				Math.abs(movie.getCat4() - member.getCat4()) * multipliers.get(3) +
-				Math.abs(movie.getCat5() - member.getCat5()) * multipliers.get(4) +
-				Math.abs(movie.getCat6() - member.getCat6()) * multipliers.get(5);
+
+		d = Math.abs(movie.getCat1() - member.getCat1()) * multipliers.get("m1")
+				+ Math.abs(movie.getCat2() - member.getCat2()) * multipliers.get("m2")
+				+ Math.abs(movie.getCat3() - member.getCat3()) * multipliers.get("m3")
+				+ Math.abs(movie.getCat4() - member.getCat4()) * multipliers.get("m4")
+				+ Math.abs(movie.getCat5() - member.getCat5()) * multipliers.get("m5")
+				+ Math.abs(movie.getCat6() - member.getCat6()) * multipliers.get("m6");
 		return d;
 	}
 }
-	
-
