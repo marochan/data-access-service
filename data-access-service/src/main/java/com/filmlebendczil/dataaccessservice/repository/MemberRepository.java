@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 import com.filmlebendczil.dataaccessservice.entity.Member;
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Long>{
-		Member findByToken(String token);
+		Member findByUserId(String userId);
 		Optional<Member> findById(Long id);
 }

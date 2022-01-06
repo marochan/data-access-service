@@ -16,8 +16,8 @@ public class Member {
 	@GeneratedValue(strategy = GenerationType.SEQUENCE)
 	private Long ID;
 	
-	@Column(name = "token")
-	private String token;
+	@Column(name = "user_id")
+	private String userId;
 	
 	@Column(name = "username")
 	private String username;
@@ -52,10 +52,10 @@ public class Member {
 
 	
 
-	public Member(String token, String username, Date createDate, double cat1, double cat2, double cat3, double cat4,
+	public Member(String userId, String username, Date createDate, double cat1, double cat2, double cat3, double cat4,
 			double cat5, double cat6) {
 		super();
-		this.token = token;
+		this.userId = userId;
 		this.username = username;
 		this.createDate = createDate;
 		this.cat1 = cat1;
@@ -163,14 +163,20 @@ public class Member {
 	}
 
 
-	public String getToken() {
-		return token;
+
+
+	public String getUserId() {
+		return userId;
 	}
 
 
-	public void setToken(String token) {
-		this.token = token;
+
+
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
+
+
 
 
 	public String getUsername() {
