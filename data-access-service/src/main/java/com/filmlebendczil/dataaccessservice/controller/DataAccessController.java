@@ -1,5 +1,6 @@
 package com.filmlebendczil.dataaccessservice.controller;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -51,7 +52,7 @@ public class DataAccessController {
 
 	@PostMapping("/add-movie")
 	public ResponseEntity<Object> addMovie(@RequestBody Movie newMovie) {
-		if (movieRepo.findById(newMovie.getID()) != null) {
+		if (movieRepo.findByName(newMovie.getName()) != null) {
 
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Movie already exists in the database");
 		}
@@ -60,18 +61,23 @@ public class DataAccessController {
 	}
 
 	@GetMapping("/get-rating")
-	public ResponseEntity<Object> getRating(@RequestParam(name = "movieId") int movieId) {
-		MovieRating rating = movieRatingRepo.findByMovieId(movieId);
-		return ResponseEntity.ok(rating);
+	public ResponseEntity<Object> getRating(@RequestParam(name = "movieId") Long movieId) {
+		Movie movie = movieRepo.findById(movieId).get();
+		if(movieRatingRepo.findAllByMovieId(movieId)==null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Movie has not been reviewed yet!");
+		}
+	
+		return ResponseEntity.ok(movie);
 	}
 
 	@GetMapping("/get-user/{userId}")
-	public ResponseEntity<Member> getCertainUser(@PathVariable("userId") String userId) {
-
+	public ResponseEntity<Object> getCertainUser(@PathVariable("userId") String userId) {
 		Member member = memberRepo.findByUserId(userId);
-		if (member == null) {
-			return (ResponseEntity<Member>) ResponseEntity.notFound();
+		if(memberRepo.findByUserId(userId)==null) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User with specified name: " + userId + " is not registered in the system");
 		}
+		
+		
 		return ResponseEntity.ok(member);
 	}
 
