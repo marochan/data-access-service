@@ -23,7 +23,7 @@ public class MovieRating {
 
 	@Column(name = "creation_date")
 	private Date createDate;
-	
+
 	@Column(name = "cat1")
 	private double cat1;
 
@@ -41,7 +41,7 @@ public class MovieRating {
 
 	@Column(name = "cat6")
 	private double cat6;
-	
+
 	@Column(name = "score")
 	private double score;
 
@@ -63,6 +63,7 @@ public class MovieRating {
 		this.cat6 = cat6;
 		this.score = score;
 	}
+
 
 	public Long getId() {
 		return id;
@@ -151,7 +152,5 @@ public class MovieRating {
 	public void setScore(double score) {
 		this.score = score;
 	}
-
-	
 
 }

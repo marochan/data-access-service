@@ -9,6 +9,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "MEMBER")
 public class Member {
@@ -152,12 +155,12 @@ public class Member {
 
 
 
-
+	@JsonIgnore
 	public Long getID() {
 		return ID;
 	}
 
-
+	@JsonGetter
 	public void setID(Long iD) {
 		ID = iD;
 	}
